@@ -1,0 +1,9 @@
+venv
+.env
+**/__pycache__
+audio
+flagged
+transcripts
+test_notebook.ipynb
+logs
+server

@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  ytb-summarizer:
+    image: ytb-summarizer:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TRANSCRIBER_MODEL_NAME=${TRANSCRIBER_MODEL_NAME}
+    container_name: ytb-summarizer
+    restart: unless-stopped
+    depends_on:
+      - redis-ytb-summarizer
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - SUMMARIZER_MODEL_NAME=${SUMMARIZER_MODEL_NAME}
+      - TRANSCRIBER_MODEL_NAME=${TRANSCRIBER_MODEL_NAME}
+      - ASSEMBLYAI_API_KEY=${ASSEMBLYAI_API_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.ytb-summarizer.rule=Host(`${DOMAIN_NAME}`) && PathPrefix(`/ytb-summarizer`)" 
+      - "traefik.http.routers.ytb-summarizer.tls=true"
+      - "traefik.http.routers.ytb-summarizer.entrypoints=https"
+      - "traefik.http.routers.ytb-summarizer.tls.certresolver=cloudflare"
+      - "traefik.http.services.ytb-summarizer.loadbalancer.server.port=80"
+      - "traefik.http.routers.ytb-summarizer.middlewares=authelia@docker"
+    networks:
+      - ytb-summarizer-network
+      - traefik
+
+  redis-ytb-summarizer:
+    image: redis:6.2-alpine
+    container_name: redis-ytb-summarizer
+    restart: unless-stopped
+    volumes:
+      - /opt/ytb-summarizer/redis/:/data
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - ytb-summarizer-network
+
+networks:
+  ytb-summarizer-network:
+    driver: bridge
+  traefik:
+    external: true
